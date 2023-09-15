@@ -82,13 +82,29 @@ class MouseDragControls {
 
         const intersectPoints = this.raycaster.intersectObject(gallery, true);
 
-        if (intersectPoints.length > 0) {
-            console.log("Hit: " + intersectPoints[0].object.name);
-            //"0" is the name of the floor
-            if (intersectPoints[0].object.name == "0") {
+        if (intersectPoints.length == 0) return;
+        let name;
+        let regex = new RegExp("^Object\\d+_Material_#49_0$");//"Objectxxx_Material_#49_0" are the volume lights
+        for (let i=0; i<intersectPoints.length; i++) {
+            name = intersectPoints[i].object.name;
+            console.log(i + " Hit: " + name);
+
+            //ignore volumn light and check for the next intersect point
+            if (regex.test(name)) {
+                console.log("Pass");
+                continue;
+            }
+            //"0" is the floor name
+            else if (name == "0") {
                 //set new Position and lerp to it in update
                 this.newPos = intersectPoints[0].point;
                 this.newPos.y = cameraHeight;
+                console.log("match");
+                break;
+            }
+            else {
+                console.log("end");
+                break;
             }
 
         }
