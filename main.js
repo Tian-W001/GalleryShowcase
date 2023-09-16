@@ -1,3 +1,6 @@
+
+"use strict";
+
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
@@ -33,7 +36,6 @@ class Controls {
         //A circle incdicating the new position camera will move to when double clicked
         this.posIndicator = new THREE.Mesh(new THREE.SphereGeometry(0.2), 
                                            new THREE.MeshBasicMaterial({color: "white"}));
-        this.posIndicator.rotation.x = Math.PI / 2;
         this.raycaster = new THREE.Raycaster();
         this.raycaster.far = 5;
 
@@ -50,13 +52,11 @@ class Controls {
         this.mouseDown = false;
         this.mousePos = new THREE.Vector2();
 
-
     }
 
     getPosIndicator(){
         return this.posIndicator;
     }
-
 
     onMouseDown() {
         this.mouseDown = true;
@@ -66,11 +66,13 @@ class Controls {
         this.mouseDown = false;
     }
 
+    //return a intersection point with the floor, or null
     getFloorIntersection() {
 
         this.raycaster.setFromCamera(this.mousePos, this.camera);
         const intersectPoints = this.raycaster.intersectObject(gallery, true);
 
+        //No intersect
         if (intersectPoints.length == 0) return null;
 
         let name;
@@ -94,14 +96,16 @@ class Controls {
         }
     }
 
+    //update posIndicator's position
     updatePosIndicator() {
         let pos = this.getFloorIntersection();
         if (pos == null) {
+            //hide the indicator
             this.posIndicator.visible = false;
         }
         //update the indicator position
-        else if (pos != null) {
-            //pos.y += 0.1;
+        else {
+            //update its position and make it visible
             this.posIndicator.position.copy(pos);
             this.posIndicator.visible = true;
         }
@@ -129,6 +133,7 @@ class Controls {
     }
 
     onMouseMove(event) {
+        //update mouse position
         this.mouseMoving = true;
         this.mousePos.x = (event.clientX / window.innerWidth) * 2 - 1;
         this.mousePos.y = -(event.clientY / window.innerHeight) * 2 + 1;
@@ -152,7 +157,6 @@ class Controls {
         this.updatePosIndicator();
         this.camera.position.lerp(this.newPos, delta);
     }
-
 
     dispose() {
         this.domElement.removeEventListener('mousedown', this.onMouseDown, false);
@@ -267,10 +271,26 @@ async function loadGallery() {
 
 
 
+function onWindowResize() {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.render(scene, camera);
+}
 
 
+function animate() {
+    requestAnimationFrame(animate);
 
+    const delta = clock.getDelta();
 
+    //camera.update(delta);
+    controls.update(delta);
+
+    renderer.render(scene, camera);
+
+    clock.start();
+}
 
 
 
@@ -294,26 +314,7 @@ const gallery = await loadGallery();
 scene.add(gallery);
 
 
-window.addEventListener('resize', onWindowResize, false)
-function onWindowResize() {
-    camera.aspect = window.innerWidth / window.innerHeight
-    camera.updateProjectionMatrix()
-    renderer.setSize(window.innerWidth, window.innerHeight)
-    renderer.render(scene, camera);
-}
-
-function animate() {
-    requestAnimationFrame(animate);
-
-    const delta = clock.getDelta();
-
-    //camera.update(delta);
-    controls.update(delta);
-
-    renderer.render(scene, camera);
-
-    clock.start();
-}
+window.addEventListener('resize', onWindowResize, false);
 
 animate();
 
