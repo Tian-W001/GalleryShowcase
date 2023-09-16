@@ -18,18 +18,24 @@ function createCamera() {
 }
 
 
-class MouseDragControls {
+class Controls {
     constructor(camera, canvas) {
         this.camera = camera;
-        this.canvas = canvas || document;
+        this.canvas = canvas;
 
-        this.enabled = true;
         this.sensitivity = 0.005;
 
         this.maxPolarAngle = Math.PI;
         this.minPolarAngle = 0;
 
-        this.newPos = new THREE.Vector3(0, 1.65, 0);
+        this.newPos = new THREE.Vector3(0, cameraHeight, 0);
+
+        //A circle incdicating the new position camera will move to when double clicked
+        this.posIndicator = new THREE.Mesh(new THREE.SphereGeometry(0.2), 
+                                           new THREE.MeshBasicMaterial({color: "white"}));
+        this.posIndicator.rotation.x = Math.PI / 2;
+        this.raycaster = new THREE.Raycaster();
+        this.raycaster.far = 5;
 
         this.onMouseDown = this.onMouseDown.bind(this);
         this.onMouseUp = this.onMouseUp.bind(this);
@@ -42,9 +48,15 @@ class MouseDragControls {
         this.canvas.addEventListener('dblclick', this.onMouseDoubleClick, false);
 
         this.mouseDown = false;
+        this.mousePos = new THREE.Vector2();
 
-        this.raycaster = new THREE.Raycaster();
+
     }
+
+    getPosIndicator(){
+        return this.posIndicator;
+    }
+
 
     onMouseDown() {
         this.mouseDown = true;
@@ -54,8 +66,51 @@ class MouseDragControls {
         this.mouseDown = false;
     }
 
-    onMouseMove(event) {
-        if (!this.mouseDown || !this.enabled) return;
+    getFloorIntersection() {
+
+        this.raycaster.setFromCamera(this.mousePos, this.camera);
+        const intersectPoints = this.raycaster.intersectObject(gallery, true);
+
+        if (intersectPoints.length == 0) return null;
+
+        let name;
+        let regex = new RegExp("^Object\\d+_Material_#49_0$");//"Objectxxx_Material_#49_0" are the volume lights
+        for (let i=0; i<intersectPoints.length; i++) {
+            name = intersectPoints[i].object.name;
+            //ignore volumn light and check for the next intersect point
+            if (regex.test(name)) {
+                continue;
+            }
+            //"0" is the floor name
+            else if (name == "0") {
+                //set new Position and lerp to it in update
+                return intersectPoints[i].point;
+            }
+            //Hit other objects
+            else {
+                return null;
+            }
+
+        }
+    }
+
+    updatePosIndicator() {
+        let pos = this.getFloorIntersection();
+        if (pos == null) {
+            this.posIndicator.visible = false;
+        }
+        //update the indicator position
+        else if (pos != null) {
+            //pos.y += 0.1;
+            this.posIndicator.position.copy(pos);
+            this.posIndicator.visible = true;
+        }
+    }
+
+    rotateCamera(event) {
+        if (!this.mouseDown) {
+            return;
+        }
 
         const deltaX = event.movementX || 0;
         const deltaY = event.movementY || 0;
@@ -73,45 +128,28 @@ class MouseDragControls {
         this.camera.quaternion.setFromEuler(euler);
     }
 
+    onMouseMove(event) {
+        this.mouseMoving = true;
+        this.mousePos.x = (event.clientX / window.innerWidth) * 2 - 1;
+        this.mousePos.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        
+        this.rotateCamera(event);
+    }
+
     onMouseDoubleClick(event) {
-        let focusPoint = new THREE.Vector2();
-        focusPoint.x = (event.clientX / window.innerWidth) * 2 - 1;
-        focusPoint.y = -(event.clientY / window.innerHeight) * 2 + 1;
+        let mousePoint = new THREE.Vector2();
+        mousePoint.x = (event.clientX / window.innerWidth) * 2 - 1;
+        mousePoint.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-        this.raycaster.setFromCamera(focusPoint, this.camera);
-
-        const intersectPoints = this.raycaster.intersectObject(gallery, true);
-
-        if (intersectPoints.length == 0) return;
-        let name;
-        let regex = new RegExp("^Object\\d+_Material_#49_0$");//"Objectxxx_Material_#49_0" are the volume lights
-        for (let i=0; i<intersectPoints.length; i++) {
-            name = intersectPoints[i].object.name;
-            console.log(i + " Hit: " + name);
-
-            //ignore volumn light and check for the next intersect point
-            if (regex.test(name)) {
-                console.log("Pass");
-                continue;
-            }
-            //"0" is the floor name
-            else if (name == "0") {
-                //set new Position and lerp to it in update
-                this.newPos = intersectPoints[i].point;
-                this.newPos.y = cameraHeight;
-                console.log("match");
-                break;
-            }
-            else {
-                console.log("end");
-                break;
-            }
-
+        let pos = this.getFloorIntersection(mousePoint);
+        if (pos != null){
+            pos.y = cameraHeight;
+            this.newPos = pos;
         }
-
     }
 
     update(delta) {
+        this.updatePosIndicator();
         this.camera.position.lerp(this.newPos, delta);
     }
 
@@ -250,8 +288,8 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 document.body.appendChild(renderer.domElement);
 
 
-const controls = new MouseDragControls(camera, renderer.domElement);
-
+const controls = new Controls(camera, renderer.domElement);
+scene.add(controls.posIndicator);
 const gallery = await loadGallery();
 scene.add(gallery);
 
