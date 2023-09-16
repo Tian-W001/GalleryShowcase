@@ -97,7 +97,7 @@ class MouseDragControls {
             //"0" is the floor name
             else if (name == "0") {
                 //set new Position and lerp to it in update
-                this.newPos = intersectPoints[0].point;
+                this.newPos = intersectPoints[i].point;
                 this.newPos.y = cameraHeight;
                 console.log("match");
                 break;
