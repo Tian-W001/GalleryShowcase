@@ -5,6 +5,8 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 
+//import studio from "@theatre/studio";
+
 const cameraHeight = 1.65;
 
 
@@ -258,8 +260,24 @@ function createControls(camera, canvas) {
 }
 
 
+function createLoadingManager() {
+    const loadingManager = new THREE.LoadingManager();
+
+    const progressBar = document.getElementById("progress-bar");
+    const progressBarContainer = document.querySelector(".progress-bar-container");
+
+    loadingManager.onProgress = function (url, loaded, total) {
+        progressBar.value = (loaded / total) * 100;
+    }
+    loadingManager.onLoad = function () {
+        progressBarContainer.style.display = "none";
+    }
+
+    return loadingManager;
+}
+
 async function loadGallery() {
-    const loader = new GLTFLoader();
+    const loader = new GLTFLoader(createLoadingManager());
     const galleryData = await loader.loadAsync("/assets/richard_art_gallery.glb");
     const gallery =  galleryData.scene;
     gallery.position.set(0,0,0);
@@ -297,6 +315,10 @@ function animate() {
 
 const clock = new THREE.Clock();
 clock.start();
+
+
+
+
 
 const scene = new THREE.Scene();
 scene.background = new THREE.Color("skyblue");
