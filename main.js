@@ -286,6 +286,14 @@ async function loadGallery() {
     const galleryData = await loader.loadAsync("/assets/richard_art_gallery.glb");
     const gallery =  galleryData.scene;
 
+    //Apply anisotropic filtering 
+    gallery.traverse((object) => {
+        const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
+        if (object.isMesh === true && object.material.map !== null ) {
+            object.material.map.anisotropy = maxAnisotropy;
+        }
+    });
+
     gallery.position.set(0,0,0);
     gallery.scale.set(1,1,1);
     return gallery;
