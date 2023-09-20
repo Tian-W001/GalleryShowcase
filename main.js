@@ -5,6 +5,7 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 
+import gsap from "gsap";
 //import studio from "@theatre/studio";
 
 const cameraHeight = 1.65;
@@ -67,6 +68,7 @@ class Controls {
     onMouseUp() {
         this.mouseDown = false;
     }
+
 
     //return a intersection point with the floor, or null
     getFloorIntersection() {
@@ -153,11 +155,17 @@ class Controls {
             pos.y = cameraHeight;
             this.newPos = pos;
         }
+
+        //Smooth camera movement with gsap
+        gsap.to(camera.position, {
+            x: pos.x, y: pos.y, z: pos.z, duration: 3, ease: "power1.inOut"
+        });
+
+
     }
 
     update(delta) {
         this.updatePosIndicator();
-        this.camera.position.lerp(this.newPos, delta);
     }
 
     dispose() {
