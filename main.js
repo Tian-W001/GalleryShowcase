@@ -153,15 +153,12 @@ class Controls {
         let pos = this.getFloorIntersection(mousePoint);
         if (pos != null){
             pos.y = cameraHeight;
-            this.newPos = pos;
+
+            //Smooth camera movement with gsap
+            gsap.to(camera.position, {
+                x: pos.x, y: pos.y, z: pos.z, duration: 3, ease: "power1.inOut"
+            });
         }
-
-        //Smooth camera movement with gsap
-        gsap.to(camera.position, {
-            x: pos.x, y: pos.y, z: pos.z, duration: 3, ease: "power1.inOut"
-        });
-
-
     }
 
     update(delta) {
@@ -288,10 +285,13 @@ async function loadGallery() {
     const loader = new GLTFLoader(createLoadingManager());
     const galleryData = await loader.loadAsync("/assets/richard_art_gallery.glb");
     const gallery =  galleryData.scene;
+
     gallery.position.set(0,0,0);
     gallery.scale.set(1,1,1);
     return gallery;
 }
+
+
 
 
 
@@ -331,8 +331,9 @@ clock.start();
 const scene = new THREE.Scene();
 scene.background = new THREE.Color("skyblue");
 const camera = createCamera();
+scene.add(camera);
 const renderer = new THREE.WebGLRenderer({antialias: true});
-renderer.setPixelRatio(1);
+renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
 
 document.body.appendChild(renderer.domElement);
@@ -342,6 +343,7 @@ const controls = new Controls(camera, renderer.domElement);
 scene.add(controls.posIndicator);
 const gallery = await loadGallery();
 scene.add(gallery);
+
 
 
 window.addEventListener('resize', onWindowResize, false);
