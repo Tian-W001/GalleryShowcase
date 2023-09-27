@@ -283,9 +283,15 @@ function createLoadingManager() {
 
 async function loadGallery() {
     const loader = new GLTFLoader(createLoadingManager());
-    const galleryData = await loader.loadAsync("/assets/richard_art_gallery.glb");
+    const galleryData = await loader.loadAsync("assets/richard_art_gallery.glb");
     const gallery =  galleryData.scene;
+    const animation = galleryData.animations[0];
+    const mixer = new THREE.AnimationMixer(gallery);
+    const action = mixer.clipAction(animation);
+    action.play();
+    gallery.update = (delta) => mixer.update(delta);
 
+    
     //Apply anisotropic filtering 
     gallery.traverse((object) => {
         const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -293,6 +299,7 @@ async function loadGallery() {
             object.material.map.anisotropy = maxAnisotropy;
         }
     });
+    
 
     gallery.position.set(0,0,0);
     gallery.scale.set(1,1,1);
@@ -322,6 +329,8 @@ function animate() {
     controls.update(delta);
 
     renderer.render(scene, camera);
+
+    gallery.update(delta);
 
     clock.start();
 }
