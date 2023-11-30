@@ -3,10 +3,12 @@
 
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { FBXLoader } from "three/examples/jsm/loaders/FBXLoader.js";
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
-
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRenderer";
 import gsap from "gsap";
-//import studio from "@theatre/studio";
+
 
 const cameraHeight = 1.65;
 
@@ -16,7 +18,7 @@ function createCamera() {
         60, 
         window.innerWidth / window.innerHeight, 
         0.1, 
-        10000,
+        1000,
     );
     camera.position.set(0, cameraHeight, 0);
 
@@ -175,96 +177,6 @@ class Controls {
 
 
 
-//FPS control for testing
-function createControls(camera, canvas) {
-
-    const controls = new PointerLockControls(camera, canvas);
-    const moveSpeed = 3;
-    let forward = false;
-    let backward = false;
-    let left = false;
-    let right = false;
-    let up = false;
-    let down = false;
-
-    
-    controls.update = (delta) => {
-        if (forward)    {
-            controls.moveForward(moveSpeed * delta);
-        }
-        if (backward)   {
-            controls.moveForward(-moveSpeed * delta);
-        }
-        if (left)       {
-            controls.moveRight(-moveSpeed * delta);
-        }
-        if (right)      {
-            controls.moveRight(moveSpeed * delta);
-        }
-        if (up)         {
-            controls.getObject().position.y += moveSpeed * delta;
-        }
-        if (down)       {
-            controls.getObject().position.y -= moveSpeed * delta;
-        }
-    }
-    
-    window.addEventListener("click", ()=>{
-        controls.lock();
-    });
-    
-    window.addEventListener("keydown", (e) => {
-
-        switch (e.code) {
-            case "KeyW":
-                forward = true;     
-                break;
-            case "KeyS":
-                backward = true;    
-                break;
-            case "KeyA":
-                left = true;
-                break;
-            case "KeyD":
-                right = true;
-                break;
-            case "Space":
-                up = true;
-                break;
-            case "ControlLeft":
-                down = true;
-                break;
-        }
-
-    });
-
-    window.addEventListener("keyup", (e) => {
-        switch (e.code) {
-            case "KeyW":
-                forward = false;     
-                break;
-            case "KeyS":
-                backward = false;    
-                break;
-            case "KeyA":
-                left = false;
-                break;
-            case "KeyD":
-                right = false;
-                break;
-            case "Space":
-                up = false;
-                break;
-            case "ControlLeft":
-                down = false;
-                break;
-        }
-    });
-
-    return controls;
-}
-
-
 function createLoadingManager() {
     const loadingManager = new THREE.LoadingManager();
 
@@ -282,8 +194,11 @@ function createLoadingManager() {
 }
 
 async function loadGallery() {
+
     const loader = new GLTFLoader(createLoadingManager());
     const galleryData = await loader.loadAsync("assets/richard_art_gallery.glb");
+    
+
     const gallery =  galleryData.scene;
     const animation = galleryData.animations[0];
     const mixer = new THREE.AnimationMixer(gallery);
@@ -302,10 +217,42 @@ async function loadGallery() {
     
 
     gallery.position.set(0,0,0);
-    gallery.scale.set(1,1,1);
+    
     return gallery;
 }
 
+async function loadFBXModel() {
+    const loader = new FBXLoader(createLoadingManager());
+
+
+    const gallery = await loader.loadAsync("assets/source/VR Art Gallery 2020 L _ Baked + Max Scene.fbx", undefined, function(object){
+        object.traverse(function (child) {
+            console.log(child);
+            if (child.isMesh) {
+                if (child.material.map) {
+                    
+                    if (child.material.map.name.includes('.psd')) {
+                        return;
+                    }
+                }
+            }
+        });
+    }, 
+    undefined
+    
+    );
+
+    gallery.position.set(0, 0, 0);
+    return gallery;
+
+
+}
+
+
+function createHotSpot() {
+    
+
+}
 
 
 
@@ -315,8 +262,14 @@ async function loadGallery() {
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
+
+
+    cssRenderer.setSize(window.innerWidth, window.innerHeight);
+    cssRenderer.render(scene, camera);
     renderer.setSize(window.innerWidth, window.innerHeight);
     renderer.render(scene, camera);
+
+    
 }
 
 
@@ -327,10 +280,11 @@ function animate() {
 
     //camera.update(delta);
     controls.update(delta);
-
-    renderer.render(scene, camera);
-
     gallery.update(delta);
+    renderer.render(scene, camera);
+    cssRenderer.render(scene, camera);
+    
+    
 
     clock.start();
 }
@@ -341,35 +295,51 @@ function animate() {
 const clock = new THREE.Clock();
 clock.start();
 
-
-
-
-
 const scene = new THREE.Scene();
 scene.background = new THREE.Color("skyblue");
+
 const camera = createCamera();
-scene.add(camera);
+
 const renderer = new THREE.WebGLRenderer({antialias: true});
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
-
 document.body.appendChild(renderer.domElement);
 
+const cssRenderer = new CSS2DRenderer();
+cssRenderer.setSize(window.innerWidth, window.innerHeight);
+cssRenderer.domElement.style.position = 'absolute';
+cssRenderer.domElement.style.top = '0';
+document.body.appendChild(cssRenderer.domElement);
 
-const controls = new Controls(camera, renderer.domElement);
+const controls = new Controls(camera, cssRenderer.domElement);
 scene.add(controls.posIndicator);
+
+const hotspot = document.createElement("div");
+hotspot.className = "hotspot";
+hotspot.setAttribute("name", "HotSpot1");
+const tooltip = document.createElement("div");
+tooltip.className = "tooltip";
+tooltip.innerHTML = "Description1";
+hotspot.appendChild(tooltip);
+
+hotspot.addEventListener('dblclick', () => {
+    console.log('Text clicked!');
+});
+
+const hotspotLabel = new CSS2DObject(hotspot);
+scene.add(hotspotLabel);
+hotspotLabel.position.set(4, 1, 0);
+
+
+
+hotspotLabel.layers.set(0);
+
 const gallery = await loadGallery();
 scene.add(gallery);
-
 
 
 window.addEventListener('resize', onWindowResize, false);
 
 animate();
-
-
-
-
-
 
 
