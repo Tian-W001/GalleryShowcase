@@ -20,7 +20,7 @@ function createCamera() {
         0.1, 
         1000,
     );
-    camera.position.set(0, cameraHeight, 0);
+    camera.position.set(2, cameraHeight, 0);
 
     return camera;
 }
@@ -85,12 +85,13 @@ class Controls {
         let regex = new RegExp("^Object\\d+_Material_#49_0$");//"Objectxxx_Material_#49_0" are the volume lights
         for (let i=0; i<intersectPoints.length; i++) {
             name = intersectPoints[i].object.name;
+            console.log(name);
             //ignore volumn light and check for the next intersect point
             if (regex.test(name)) {
                 continue;
             }
             //"0" is the floor name
-            else if (name == "0") {
+            else if (name == "floor") {
                 //set new Position and lerp to it in update
                 return intersectPoints[i].point;
             }
@@ -196,21 +197,23 @@ function createLoadingManager() {
 async function loadGallery() {
 
     const loader = new GLTFLoader(createLoadingManager());
-    const galleryData = await loader.loadAsync("assets/richard_art_gallery.glb");
+    //const galleryData = await loader.loadAsync("assets/richard_art_gallery.glb");
+    const galleryData = await loader.loadAsync("assets/scene_v2.glb");
     
 
     const gallery =  galleryData.scene;
-    const animation = galleryData.animations[0];
-    const mixer = new THREE.AnimationMixer(gallery);
-    const action = mixer.clipAction(animation);
-    action.play();
-    gallery.update = (delta) => mixer.update(delta);
+    //const animation = galleryData.animations[0];
+    //const mixer = new THREE.AnimationMixer(gallery);
+    //const action = mixer.clipAction(animation);
+    //action.play();
+    //gallery.update = (delta) => mixer.update(delta);
 
     
     //Apply anisotropic filtering 
     gallery.traverse((object) => {
         const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
         if (object.isMesh === true && object.material.map !== null ) {
+            //console.log(object.material.map.name);
             object.material.map.anisotropy = maxAnisotropy;
         }
     });
@@ -221,32 +224,7 @@ async function loadGallery() {
     return gallery;
 }
 
-async function loadFBXModel() {
-    const loader = new FBXLoader(createLoadingManager());
 
-
-    const gallery = await loader.loadAsync("assets/source/VR Art Gallery 2020 L _ Baked + Max Scene.fbx", undefined, function(object){
-        object.traverse(function (child) {
-            console.log(child);
-            if (child.isMesh) {
-                if (child.material.map) {
-                    
-                    if (child.material.map.name.includes('.psd')) {
-                        return;
-                    }
-                }
-            }
-        });
-    }, 
-    undefined
-    
-    );
-
-    gallery.position.set(0, 0, 0);
-    return gallery;
-
-
-}
 
 
 function createHotSpot() {
@@ -280,7 +258,7 @@ function animate() {
 
     //camera.update(delta);
     controls.update(delta);
-    gallery.update(delta);
+    //gallery.update(delta);
     renderer.render(scene, camera);
     cssRenderer.render(scene, camera);
     
@@ -337,6 +315,8 @@ hotspotLabel.layers.set(0);
 const gallery = await loadGallery();
 scene.add(gallery);
 
+const ambientLight = new THREE.AmbientLight('white');
+scene.add(ambientLight);
 
 window.addEventListener('resize', onWindowResize, false);
 
