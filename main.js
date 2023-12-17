@@ -82,16 +82,12 @@ class Controls {
         if (intersectPoints.length == 0) return null;
 
         let name;
-        let regex = new RegExp("^Object\\d+_Material_#49_0$");//"Objectxxx_Material_#49_0" are the volume lights
+        //let regex = new RegExp("^Object\\d+_Material_#49_0$");//"Objectxxx_Material_#49_0" are the volume lights
         for (let i=0; i<intersectPoints.length; i++) {
             name = intersectPoints[i].object.name;
-            console.log(name);
-            //ignore volumn light and check for the next intersect point
-            if (regex.test(name)) {
-                continue;
-            }
+
             //"0" is the floor name
-            else if (name == "floor") {
+            if (name == "floor") {
                 //set new Position and lerp to it in update
                 return intersectPoints[i].point;
             }
@@ -197,11 +193,10 @@ function createLoadingManager() {
 async function loadGallery() {
 
     const loader = new GLTFLoader(createLoadingManager());
-    //const galleryData = await loader.loadAsync("assets/richard_art_gallery.glb");
-    const galleryData = await loader.loadAsync("assets/scene_v2.glb");
+    const galleryData = await loader.loadAsync("assets/scene_v2_1.glb");
     
 
-    const gallery =  galleryData.scene;
+    const gallery = galleryData.scene;
     //const animation = galleryData.animations[0];
     //const mixer = new THREE.AnimationMixer(gallery);
     //const action = mixer.clipAction(animation);
@@ -212,11 +207,15 @@ async function loadGallery() {
     //Apply anisotropic filtering 
     gallery.traverse((object) => {
         const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
-        if (object.isMesh === true && object.material.map !== null ) {
-            //console.log(object.material.map.name);
+
+        if (object.isMesh && object.material.map !== null) {
             object.material.map.anisotropy = maxAnisotropy;
         }
+    
     });
+
+    //console.log(gallery.children[1]);
+    gallery.children[1].intensity = 100;
     
 
     gallery.position.set(0,0,0);
@@ -224,17 +223,68 @@ async function loadGallery() {
     return gallery;
 }
 
-
-
-
-function createHotSpot() {
-    
-
+function createCube(pos) {
+    const geometry = new THREE.BoxGeometry(1, 1, 1);
+    const material = new THREE.MeshBasicMaterial({color:'white'});
+    const cube = new THREE.Mesh(geometry, material);
+    cube.position.set(pos.x, pos.y, pos.z);
+    return cube;
 }
 
 
 
+function loadFBX() {
+    
+    const loader = new FBXLoader();
+    const hotspots = new THREE.Group();
+    loader.load(
+        'assets/gallery/gallery_fbx_with_dummy.fbx',
+        (object) => {
+            if (object.name == '') { //hotspots
+                object.children.forEach((child) => {
+                    if (child.name.includes("Point")) {
+                        const hotspotObject = createHotspot(child.position);
+                        hotspots.add(hotspotObject);
+                    }
+                });
+            }
+        },
+    );
+    return hotspots;
+}
 
+function createHotspot(position) {
+    // Create a 2D hotspot container
+    const hotspotContainer = document.createElement('div');
+    hotspotContainer.style.position = 'absolute';
+    hotspotContainer.style.top = '0';
+    hotspotContainer.style.left = '0';
+    document.body.appendChild(hotspotContainer);
+  
+    // Create a 2D hotspot element with an image
+    const hotspotElement = document.createElement('img');
+    hotspotElement.src = 'assets/info.jpg'; 
+    hotspotElement.style.width = '20px'; 
+    hotspotElement.style.height = '20px'; 
+    hotspotElement.style.position = 'absolute';
+    hotspotContainer.appendChild(hotspotElement);
+    
+
+
+
+    // Handle click event on the hotspot
+    hotspotElement.addEventListener('click', () => {
+      // Perform actions when the hotspot is clicked
+      console.log('Hotspot clicked at position:', position);
+      // Add your logic here, e.g., show information or navigate to another scene
+    });
+
+    const hotspotObject = new CSS2DObject(hotspotContainer);
+    hotspotObject.position.set(position.x, position.y, position.z);
+  
+    return hotspotObject;
+  }
+  
 
 
 function onWindowResize() {
@@ -281,6 +331,8 @@ const camera = createCamera();
 const renderer = new THREE.WebGLRenderer({antialias: true});
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
+//renderer.useLegacyLights = true;
+
 document.body.appendChild(renderer.domElement);
 
 const cssRenderer = new CSS2DRenderer();
@@ -292,30 +344,14 @@ document.body.appendChild(cssRenderer.domElement);
 const controls = new Controls(camera, cssRenderer.domElement);
 scene.add(controls.posIndicator);
 
-const hotspot = document.createElement("div");
-hotspot.className = "hotspot";
-hotspot.setAttribute("name", "HotSpot1");
-const tooltip = document.createElement("div");
-tooltip.className = "tooltip";
-tooltip.innerHTML = "Description1";
-hotspot.appendChild(tooltip);
-
-hotspot.addEventListener('dblclick', () => {
-    console.log('Text clicked!');
-});
-
-const hotspotLabel = new CSS2DObject(hotspot);
-scene.add(hotspotLabel);
-hotspotLabel.position.set(4, 1, 0);
-
-
-
-hotspotLabel.layers.set(0);
+const hotspots = loadFBX();
+scene.add(hotspots);
 
 const gallery = await loadGallery();
 scene.add(gallery);
 
-const ambientLight = new THREE.AmbientLight('white');
+
+const ambientLight = new THREE.AmbientLight('white', 3.0);
 scene.add(ambientLight);
 
 window.addEventListener('resize', onWindowResize, false);
