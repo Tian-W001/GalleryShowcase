@@ -42,7 +42,7 @@ class Controls {
         this.posIndicator = new THREE.Mesh(new THREE.SphereGeometry(0.2), 
                                            new THREE.MeshBasicMaterial({color: "white"}));
         this.raycaster = new THREE.Raycaster();
-        this.raycaster.far = 5;
+        this.raycaster.far = 10;
 
         this.onMouseDown = this.onMouseDown.bind(this);
         this.onMouseUp = this.onMouseUp.bind(this);
@@ -244,12 +244,21 @@ function loadFBX() {
                 object.children.forEach((child) => {
                     if (child.name.includes("Point")) {
                         const hotspotObject = createHotspot(child.position);
+                        hotspotObject.name = child.name;
                         hotspots.add(hotspotObject);
                     }
                 });
             }
         },
     );
+
+    hotspots.update = () => {
+        hotspots.children.forEach((hotspot) => {
+            //console.log("update hotspot at", hotspot.position);
+            hotspot.update();
+        });
+    }
+
     return hotspots;
 }
 
@@ -270,7 +279,7 @@ function createHotspot(position) {
     hotspotContainer.appendChild(hotspotElement);
     
 
-
+    
 
     // Handle click event on the hotspot
     hotspotElement.addEventListener('click', () => {
@@ -281,6 +290,26 @@ function createHotspot(position) {
 
     const hotspotObject = new CSS2DObject(hotspotContainer);
     hotspotObject.position.set(position.x, position.y, position.z);
+
+    hotspotObject.update = () => {
+        const raycaster = new THREE.Raycaster();
+        const d = camera.position.distanceTo(position);
+        if (d > 15) {
+            hotspotObject.visible = false;
+            return;
+        }
+        const dir = new THREE.Vector3();
+        dir.copy(position).sub(camera.position).normalize();
+        raycaster.set(camera.position, dir);
+        const intersects = raycaster.intersectObjects(scene.children, true);
+
+        if (intersects.length > 0 && intersects[0].distance - d > 0) {
+            hotspotObject.visible = true;
+        }
+        else {
+            hotspotObject.visible = false;
+        }
+    }
   
     return hotspotObject;
   }
@@ -309,11 +338,12 @@ function animate() {
     //camera.update(delta);
     controls.update(delta);
     //gallery.update(delta);
+
+    hotspots.update();
     renderer.render(scene, camera);
     cssRenderer.render(scene, camera);
     
     
-
     clock.start();
 }
 
