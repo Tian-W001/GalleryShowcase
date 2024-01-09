@@ -262,6 +262,27 @@ function loadFBX() {
     return hotspots;
 }
 
+function createUI() {
+    const settingContainer = document.createElement('div');
+    settingContainer.style.position = 'absolute';
+    settingContainer.style.top = '0';
+    settingContainer.style.left = '0';
+    document.body.appendChild(settingContainer);
+
+    const settingElement = document.createElement('img');
+    settingElement.src = 'assets/settings.png';
+    settingElement.style.width = '100px'; 
+    settingElement.style.height = '100px'; 
+    settingElement.style.position = 'absolute';
+    settingContainer.appendChild(settingElement);
+
+    settingElement.addEventListener('click', () => {
+        // Perform actions when the hotspot is clicked
+        console.log('Setting:');
+        // Add your logic here, e.g., show information or navigate to another scene
+      });
+}
+
 function createHotspot(position) {
     // Create a 2D hotspot container
     const hotspotContainer = document.createElement('div');
@@ -373,6 +394,10 @@ document.body.appendChild(cssRenderer.domElement);
 
 const controls = new Controls(camera, cssRenderer.domElement);
 scene.add(controls.posIndicator);
+
+
+const UI = createUI();
+scene.add(UI);
 
 const hotspots = loadFBX();
 scene.add(hotspots);
