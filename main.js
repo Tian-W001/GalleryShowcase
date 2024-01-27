@@ -186,17 +186,16 @@ function createLoadingManager() {
     loadingManager.onLoad = function () {
         progressBarContainer.style.display = "none";
     }
-
     return loadingManager;
 }
 
 async function loadGallery() {
 
     const loader = new GLTFLoader(createLoadingManager());
-    const galleryData = await loader.loadAsync("assets/scene_v2_1.glb");
-    
-
+    const galleryData = await loader.loadAsync("assets/gallery_fixed.glb");
     const gallery = galleryData.scene;
+
+    
     //const animation = galleryData.animations[0];
     //const mixer = new THREE.AnimationMixer(gallery);
     //const action = mixer.clipAction(animation);
@@ -204,19 +203,33 @@ async function loadGallery() {
     //gallery.update = (delta) => mixer.update(delta);
 
     
-    //Apply anisotropic filtering 
+    const hotspots = new THREE.Group();
+    hotspots.name = "hotspots";
     gallery.traverse((object) => {
+        //Apply anisotropic filtering 
         const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
-
         if (object.isMesh && object.material.map !== null) {
             object.material.map.anisotropy = maxAnisotropy;
         }
-    
+        //Create hotspot
+        if (object.name.includes("Point")) {
+            const hotspotObject = createHotspot(object.position);
+            hotspotObject.name = object.name;
+            hotspots.add(hotspotObject);
+        }
     });
 
-    //console.log(gallery.children[1]);
-    gallery.children[1].intensity = 100;
-    
+    hotspots.update = () => {
+        hotspots.children.forEach((hotspot) => {
+            //console.log("update hotspot at", hotspot.position);
+            hotspot.update();
+        });
+    }
+    gallery.add(hotspots);
+
+    gallery.update = () => {
+        gallery.getObjectByName("hotspots").update();
+    }
 
     gallery.position.set(0,0,0);
     
@@ -232,36 +245,6 @@ function createCube(pos) {
 }
 
 
-
-function loadFBX() {
-    
-    const loader = new FBXLoader();
-    const hotspots = new THREE.Group();
-    loader.load(
-        'assets/gallery/gallery_fbx_with_dummy.fbx',
-        (object) => {
-            if (object.name == '') { //hotspots
-                object.children.forEach((child) => {
-                    if (child.name.includes("Point")) {
-                        const hotspotObject = createHotspot(child.position);
-                        hotspotObject.name = child.name;
-                        hotspots.add(hotspotObject);
-                    }
-                });
-            }
-        },
-    );
-
-    hotspots.update = () => {
-        hotspots.children.forEach((hotspot) => {
-            //console.log("update hotspot at", hotspot.position);
-            hotspot.update();
-        });
-    }
-
-    return hotspots;
-}
-
 function createUI() {
     const settingContainer = document.createElement('div');
     settingContainer.style.position = 'absolute';
@@ -271,8 +254,8 @@ function createUI() {
 
     const settingElement = document.createElement('img');
     settingElement.src = 'assets/settings.png';
-    settingElement.style.width = '100px'; 
-    settingElement.style.height = '100px'; 
+    settingElement.style.width = '80px'; 
+    settingElement.style.height = '80px'; 
     settingElement.style.position = 'absolute';
     settingContainer.appendChild(settingElement);
 
@@ -300,8 +283,6 @@ function createHotspot(position) {
     hotspotContainer.appendChild(hotspotElement);
     
 
-    
-
     // Handle click event on the hotspot
     hotspotElement.addEventListener('click', () => {
       // Perform actions when the hotspot is clicked
@@ -315,7 +296,7 @@ function createHotspot(position) {
     hotspotObject.update = () => {
         const raycaster = new THREE.Raycaster();
         const d = camera.position.distanceTo(position);
-        if (d > 15) {
+        if (d > 30) {
             hotspotObject.visible = false;
             return;
         }
@@ -324,6 +305,7 @@ function createHotspot(position) {
         raycaster.set(camera.position, dir);
         const intersects = raycaster.intersectObjects(scene.children, true);
 
+        
         if (intersects.length > 0 && intersects[0].distance - d > 0) {
             hotspotObject.visible = true;
         }
@@ -358,9 +340,9 @@ function animate() {
 
     //camera.update(delta);
     controls.update(delta);
-    //gallery.update(delta);
+    gallery.update(delta);
 
-    hotspots.update();
+    //hotspots.update();
     renderer.render(scene, camera);
     cssRenderer.render(scene, camera);
     
@@ -382,7 +364,6 @@ const camera = createCamera();
 const renderer = new THREE.WebGLRenderer({antialias: true});
 renderer.setPixelRatio(window.devicePixelRatio);
 renderer.setSize(window.innerWidth, window.innerHeight);
-//renderer.useLegacyLights = true;
 
 document.body.appendChild(renderer.domElement);
 
@@ -398,9 +379,6 @@ scene.add(controls.posIndicator);
 
 const UI = createUI();
 scene.add(UI);
-
-const hotspots = loadFBX();
-scene.add(hotspots);
 
 const gallery = await loadGallery();
 scene.add(gallery);
