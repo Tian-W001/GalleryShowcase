@@ -10,7 +10,7 @@ import { CSS2DRenderer, CSS2DObject } from "three/examples/jsm/renderers/CSS2DRe
 import gsap from "gsap";
 
 
-const cameraHeight = 1.65;
+const cameraHeight = 1.8;
 
 
 function createCamera() {
@@ -82,11 +82,9 @@ class Controls {
         if (intersectPoints.length == 0) return null;
 
         let name;
-        //let regex = new RegExp("^Object\\d+_Material_#49_0$");//"Objectxxx_Material_#49_0" are the volume lights
         for (let i=0; i<intersectPoints.length; i++) {
             name = intersectPoints[i].object.name;
 
-            //"0" is the floor name
             if (name == "floor") {
                 //set new Position and lerp to it in update
                 return intersectPoints[i].point;
@@ -221,7 +219,6 @@ async function loadGallery() {
 
     hotspots.update = () => {
         hotspots.children.forEach((hotspot) => {
-            //console.log("update hotspot at", hotspot.position);
             hotspot.update();
         });
     }
@@ -260,9 +257,7 @@ function createUI() {
     settingContainer.appendChild(settingElement);
 
     settingElement.addEventListener('click', () => {
-        // Perform actions when the hotspot is clicked
         console.log('Setting:');
-        // Add your logic here, e.g., show information or navigate to another scene
       });
 }
 
@@ -285,9 +280,9 @@ function createHotspot(position) {
 
     // Handle click event on the hotspot
     hotspotElement.addEventListener('click', () => {
-      // Perform actions when the hotspot is clicked
-      console.log('Hotspot clicked at position:', position);
-      // Add your logic here, e.g., show information or navigate to another scene
+        // Perform actions when the hotspot is clicked
+        //console.log('Hotspot clicked at position:', position);
+        showInfoPopup("Painting1");
     });
 
     const hotspotObject = new CSS2DObject(hotspotContainer);
@@ -296,7 +291,7 @@ function createHotspot(position) {
     hotspotObject.update = () => {
         const raycaster = new THREE.Raycaster();
         const d = camera.position.distanceTo(position);
-        if (d > 30) {
+        if (d > 15) {
             hotspotObject.visible = false;
             return;
         }
@@ -304,7 +299,6 @@ function createHotspot(position) {
         dir.copy(position).sub(camera.position).normalize();
         raycaster.set(camera.position, dir);
         const intersects = raycaster.intersectObjects(scene.children, true);
-
         
         if (intersects.length > 0 && intersects[0].distance - d > 0) {
             hotspotObject.visible = true;
@@ -315,9 +309,74 @@ function createHotspot(position) {
     }
   
     return hotspotObject;
-  }
-  
+}
 
+function showInfoPopup(infoText) {
+    // Create the info popup elements dynamically
+    const infoPopup = document.createElement('div');
+    infoPopup.id = 'info-popup';
+    infoPopup.style.position = 'fixed';
+    infoPopup.style.bottom = '10%'; // Adjust to set the desired height above the bottom
+    infoPopup.style.left = '50%';
+    infoPopup.style.transform = 'translateX(-50%)'; // Center horizontally
+    infoPopup.style.width = '66.67%'; // 2/3 of the width
+    infoPopup.style.backgroundColor = 'rgba(50, 50, 50, 0.9)';
+    infoPopup.style.color = 'white';
+    infoPopup.style.borderRadius = '15px'; // Round edges
+    infoPopup.style.transition = 'bottom 0.3s ease-in-out, opacity 0.3s ease-in-out';
+    infoPopup.style.opacity = '0'; // Start with opacity 0
+
+    const infoContent = document.createElement('div');
+    infoContent.id = 'info-content';
+    infoContent.style.padding = '20px';
+
+    const closeButton = document.createElement('span');
+    closeButton.id = 'close-button';
+    closeButton.textContent = 'X';
+    closeButton.style.position = 'absolute';
+    closeButton.style.top = '10px';
+    closeButton.style.right = '10px';
+    closeButton.style.cursor = 'pointer';
+    closeButton.addEventListener('click', closeInfoPopup);
+
+    const infoTextElement = document.createElement('p');
+    infoTextElement.id = 'info-text';
+    infoTextElement.textContent = infoText;
+
+    // Append elements to the body
+    infoContent.appendChild(closeButton);
+    infoContent.appendChild(infoTextElement);
+    infoPopup.appendChild(infoContent);
+    document.body.appendChild(infoPopup);
+
+    // Triggering reflow to enable transition on initial render
+    infoPopup.offsetHeight;
+
+    // Set the timeout to allow for CSS transitions
+    setTimeout(() => {
+        infoPopup.style.bottom = '0'; // Slide in
+        infoPopup.style.opacity = '1'; // Fade in
+    }, 10);
+}
+
+function closeInfoPopup() {
+    const infoPopup = document.getElementById('info-popup');
+
+    // Remove the event listener to prevent it from firing multiple times
+    infoPopup.removeEventListener('transitionend', onTransitionEnd);
+
+    // Slide out
+    infoPopup.style.bottom = '-100%';
+
+    // Function to handle the transition end and removal
+    function onTransitionEnd() {
+        infoPopup.parentNode.removeChild(infoPopup);
+    }
+
+    // Add the event listener back
+    infoPopup.addEventListener('transitionend', onTransitionEnd, { once: false });
+}
+  
 
 function onWindowResize() {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -377,12 +436,14 @@ const controls = new Controls(camera, cssRenderer.domElement);
 scene.add(controls.posIndicator);
 
 
-const UI = createUI();
-scene.add(UI);
+
 
 const gallery = await loadGallery();
 scene.add(gallery);
 
+
+//const UI = createUI();
+//scene.add(UI);
 
 const ambientLight = new THREE.AmbientLight('white', 3.0);
 scene.add(ambientLight);
