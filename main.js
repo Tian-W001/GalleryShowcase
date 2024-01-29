@@ -282,7 +282,11 @@ function createHotspot(position) {
     hotspotElement.addEventListener('click', () => {
         // Perform actions when the hotspot is clicked
         //console.log('Hotspot clicked at position:', position);
-        showInfoPopup("Painting1");
+        //createInfoPopup("assets/TEST.pdf");
+        //createWebpagePopup("https://www.google.com/search?igu=1");
+        //createWebpagePopup("https://player.vimeo.com/video/898267263?h=f959a63df0&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479");
+        createInfoPopup("assets/big_buck_bunny.mp4");
+        //createInfoPopup("https://player.vimeo.com/video/898267263?h=f959a63df0&amp;badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479");
     });
 
     const hotspotObject = new CSS2DObject(hotspotContainer);
@@ -311,42 +315,48 @@ function createHotspot(position) {
     return hotspotObject;
 }
 
-function showInfoPopup(infoText) {
-    // Create the info popup elements dynamically
+function createInfoPopup(url) {
     const infoPopup = document.createElement('div');
     infoPopup.id = 'info-popup';
-    infoPopup.style.position = 'fixed';
-    infoPopup.style.bottom = '10%'; // Adjust to set the desired height above the bottom
+    infoPopup.style.position = 'absolute';
+    //infoPopup.style.paddingBottom = '56.25%';
+    infoPopup.style.maxWidth = '100%';
+    infoPopup.style.height = 'auto';
+    infoPopup.style.top = '50%';
     infoPopup.style.left = '50%';
-    infoPopup.style.transform = 'translateX(-50%)'; // Center horizontally
-    infoPopup.style.width = '66.67%'; // 2/3 of the width
-    infoPopup.style.backgroundColor = 'rgba(50, 50, 50, 0.9)';
-    infoPopup.style.color = 'white';
-    infoPopup.style.borderRadius = '15px'; // Round edges
-    infoPopup.style.transition = 'bottom 0.3s ease-in-out, opacity 0.3s ease-in-out';
+    infoPopup.style.transform = 'translate(-50%, -50%)'; // Center horizontally and vertically
+    infoPopup.style.width = '66.67vw'; 
+    infoPopup.style.height = '37.5vw';
+    infoPopup.style.overflow = 'hidden';
+    infoPopup.style.transition = 'opacity 0.3s ease-in-out';
     infoPopup.style.opacity = '0'; // Start with opacity 0
+    infoPopup.style.zIndex = '1000';
 
-    const infoContent = document.createElement('div');
-    infoContent.id = 'info-content';
-    infoContent.style.padding = '20px';
+    const iframe = document.createElement('iframe');
+    iframe.style.position = 'absolute';
+    iframe.style.top = '0';
+    iframe.style.left = '0';
+    iframe.style.width = '100%';
+    iframe.style.height = '100%';
+    iframe.style.border = 'none'; 
+    iframe.src = url;
+    iframe.allow = 'autoplay; fullscreen; picture-in-picture';
 
-    const closeButton = document.createElement('span');
-    closeButton.id = 'close-button';
-    closeButton.textContent = 'X';
-    closeButton.style.position = 'absolute';
-    closeButton.style.top = '10px';
-    closeButton.style.right = '10px';
-    closeButton.style.cursor = 'pointer';
-    closeButton.addEventListener('click', closeInfoPopup);
+    const closeBtn = document.createElement('span');
+    closeBtn.id = 'close-button';
+    closeBtn.textContent = 'X';
+    closeBtn.style.position = 'absolute';
+    closeBtn.style.top = '10px';
+    closeBtn.style.right = '10px'; 
+    closeBtn.style.fontSize = '25px';
+    closeBtn.style.color = 'grey';
+    closeBtn.style.zIndex = '1001';  
+    closeBtn.style.cursor = 'pointer';
+    closeBtn.addEventListener('click', closeInfoPopup);
 
-    const infoTextElement = document.createElement('p');
-    infoTextElement.id = 'info-text';
-    infoTextElement.textContent = infoText;
 
-    // Append elements to the body
-    infoContent.appendChild(closeButton);
-    infoContent.appendChild(infoTextElement);
-    infoPopup.appendChild(infoContent);
+    infoPopup.appendChild(closeBtn);
+    infoPopup.appendChild(iframe);
     document.body.appendChild(infoPopup);
 
     // Triggering reflow to enable transition on initial render
@@ -354,28 +364,22 @@ function showInfoPopup(infoText) {
 
     // Set the timeout to allow for CSS transitions
     setTimeout(() => {
-        infoPopup.style.bottom = '0'; // Slide in
         infoPopup.style.opacity = '1'; // Fade in
     }, 10);
 }
-
 function closeInfoPopup() {
     const infoPopup = document.getElementById('info-popup');
 
-    // Remove the event listener to prevent it from firing multiple times
-    infoPopup.removeEventListener('transitionend', onTransitionEnd);
-
     // Slide out
-    infoPopup.style.bottom = '-100%';
+    infoPopup.style.opacity = '0';
 
-    // Function to handle the transition end and removal
-    function onTransitionEnd() {
+    // Remove the info popup after the transition ends
+    infoPopup.addEventListener('transitionend', () => {
         infoPopup.parentNode.removeChild(infoPopup);
-    }
-
-    // Add the event listener back
-    infoPopup.addEventListener('transitionend', onTransitionEnd, { once: false });
+    }, { once: true });
 }
+
+
   
 
 function onWindowResize() {
